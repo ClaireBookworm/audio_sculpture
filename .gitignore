@@ -1,0 +1,8 @@
+*.stl
+*.png
+spectrograms/
+outputs/
+*.mix
+SCANNER*
+overview.md
+*.obj

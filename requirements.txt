@@ -1,0 +1,9 @@
+flask==2.3.3
+flask-cors==4.0.0
+numpy
+librosa==0.10.1
+scipy==1.11.1
+trimesh==3.23.5
+numpy-stl==3.0.1
+werkzeug==2.3.7
+Pillow==10.0.0

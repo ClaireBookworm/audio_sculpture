@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Sculpture Generator</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Tahoma, sans-serif;
+            /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            /* background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); */
+			background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 5px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e8f0ff;
+            transform: scale(1.02);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #667eea;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 15px;
+            /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+			background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .viewer-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 5px;
+            min-height: 500px;
+        }
+
+        .viewer-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .download-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
+        }
+
+        .audio-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .audio-preview audio {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Audio Sculpture Generator</h1>
+            <p>Transform your audio into beautiful 3D sculptures</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <h3>Upload Audio File</h3>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="audioFile" class="file-input" accept="audio/*" />
+                </div>
+
+                <div class="audio-preview" id="audioPreview" style="display: none;">
+                    <audio controls id="audioPlayer"></audio>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="sculptureMethod">Sculpture Method:</label>
+                        <select id="sculptureMethod">
+                            <option value="cylindrical">Cylindrical (Vinyl Record Style)</option>
+                            <option value="rectangular">Rectangular (Heightfield)</option>
+                            <option value="helical">Helical (DNA Spiral)</option>
+                            <option value="topographical">Topographical (Mountain Ranges)</option>
+                            <option value="branching">Branching Tree (Organic Growth)</option>
+                            <option value="volumetric">Volumetric Blocks (3D Cubes)</option>
+                            <option value="chunky_extrusion">Chunky Extrusion (3D Printable)</option>
+                            <option value="chunky_cylindrical">Chunky Cylindrical (Scannable Rings)</option>
+                            <option value="chunky_topographical">Chunky Topographical (Plateaus)</option>
+                            <option value="chunky_tree">Chunky Tree (Measurable Branches)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="duration">Duration (seconds):</label>
+                        <input type="number" id="duration" value="20" min="5" max="60" />
+                    </div>
+                </div>
+
+                <button class="convert-btn" id="convertBtn" onclick="convertAudio()">
+                    Generate 3D Sculpture
+                </button>
+
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="status" id="status" style="display: none;"></div>
+            </div>
+
+            <div class="viewer-section">
+                <h3>3D Sculpture Viewer</h3>
+                <div id="threejs-container" style="width: 100%; height: 400px; background: #f0f0f0; border-radius: 10px; border: 2px solid #dee2e6;">
+                    <div id="loading-message" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
+                            <div>Upload audio to generate 3D sculpture</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="download-section" id="downloadSection" style="display: none;">
+                    <a href="#" id="downloadBtn" class="download-btn" download>
+                        📥 Download STL File
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAudioFile = null;
+        let currentSTLFile = null;
+
+        // File upload handling
+        document.getElementById('audioFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                currentAudioFile = file;
+                showAudioPreview(file);
+                showStatus('Audio file loaded successfully!', 'success');
+            }
+        });
+
+        // Drag and drop functionality
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                currentAudioFile = files[0];
+                document.getElementById('audioFile').files = files;
+                showAudioPreview(files[0]);
+                showStatus('Audio file loaded successfully!', 'success');
+            } else {
+                showStatus('Please drop a valid audio file.', 'error');
+            }
+        });
+
+        function showAudioPreview(file) {
+            const audioPreview = document.getElementById('audioPreview');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            const url = URL.createObjectURL(file);
+            audioPlayer.src = url;
+            audioPreview.style.display = 'block';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        function showProgress(show) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.display = show ? 'block' : 'none';
+        }
+
+        function updateProgress(percent) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percent + '%';
+        }
+
+        async function convertAudio() {
+            if (!currentAudioFile) {
+                showStatus('Please select an audio file first.', 'error');
+                return;
+            }
+
+            const convertBtn = document.getElementById('convertBtn');
+            const method = document.getElementById('sculptureMethod').value;
+            const duration = parseInt(document.getElementById('duration').value);
+
+            // Disable button and show progress
+            convertBtn.disabled = true;
+            convertBtn.textContent = 'Generating Sculpture...';
+            showProgress(true);
+            showStatus('Uploading audio file...', 'processing');
+
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('audio', currentAudioFile);
+                formData.append('method', method);
+                formData.append('duration', duration);
+
+                updateProgress(10);
+
+                // Upload file and start conversion
+                const uploadResponse = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.error || 'Upload failed');
+                }
+
+                const uploadData = await uploadResponse.json();
+                const conversionId = uploadData.conversion_id;
+
+                updateProgress(20);
+                showStatus('Conversion started, monitoring progress...', 'processing');
+
+                // Poll for conversion status
+                await pollConversionStatus(conversionId);
+
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showStatus('Error generating sculpture: ' + error.message, 'error');
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = 'Generate 3D Sculpture';
+                showProgress(false);
+            }
+        }
+
+        async function pollConversionStatus(conversionId) {
+            const maxAttempts = 120; // 2 minutes max
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(`/status/${conversionId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to get status');
+                    }
+
+                    const status = await response.json();
+                    
+                    // Update progress
+                    updateProgress(20 + (status.progress * 0.8)); // 20-100% range
+                    showStatus(status.message, status.status === 'error' ? 'error' : 'processing');
+
+                    if (status.status === 'completed') {
+                        // Conversion completed successfully
+                        currentSTLFile = status.stl_file;
+                        loadSTLInViewer(conversionId);
+                        showStatus('3D sculpture generated successfully!', 'success');
+                        showDownloadButton(conversionId);
+                        return;
+                    } else if (status.status === 'error') {
+                        throw new Error(status.error || 'Conversion failed');
+                    }
+
+                    // Wait before next poll
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    attempts++;
+
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            throw new Error('Conversion timed out');
+        }
+
+
+        let scene, camera, renderer, controls, currentMesh;
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-container');
+            
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(50, 50, 50);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Add renderer to container
+            container.innerHTML = '';
+            container.appendChild(renderer.domElement);
+            
+            // Add controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Add grid
+            const gridHelper = new THREE.GridHelper(100, 20);
+            scene.add(gridHelper);
+            
+            // Start render loop
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function loadSTLInViewer(conversionId) {
+            // Initialize Three.js if not already done
+            if (!scene) {
+                initThreeJS();
+            }
+            
+            // Remove existing mesh
+            if (currentMesh) {
+                scene.remove(currentMesh);
+            }
+            
+            // Load 3D preview data
+            fetch(`/preview/${conversionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    // Create geometry from the data
+                    const geometry = new THREE.BufferGeometry();
+                    
+                    // Set vertices
+                    const vertices = new Float32Array(data.data.attributes.position.array);
+                    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                    
+                    // Set faces
+                    const indices = new Uint16Array(data.data.index.array);
+                    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+                    
+                    // Compute normals for proper lighting
+                    geometry.computeVertexNormals();
+                    
+                    // Create material
+                    const material = new THREE.MeshLambertMaterial({ 
+                        color: 0x667eea,
+                        side: THREE.DoubleSide
+                    });
+                    
+                    // Create mesh
+                    currentMesh = new THREE.Mesh(geometry, material);
+                    currentMesh.castShadow = true;
+                    currentMesh.receiveShadow = true;
+                    
+                    // Add to scene
+                    scene.add(currentMesh);
+                    
+                    // Center and scale the mesh
+                    geometry.computeBoundingBox();
+                    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                    currentMesh.position.sub(center);
+                    
+                    // Scale to fit in view
+                    const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 30 / maxDim; // Scale to fit in 30 unit cube
+                    currentMesh.scale.setScalar(scale);
+                    
+                    // Update camera to look at the mesh
+                    camera.position.set(50, 50, 50);
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                    
+                    console.log('3D mesh loaded successfully');
+                    console.log('Mesh info:', data.mesh_info);
+                    
+                })
+                .catch(error => {
+                    console.error('Error loading 3D preview:', error);
+                    // Show error message
+                    const container = document.getElementById('threejs-container');
+                    container.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                                <div>Error loading 3D preview</div>
+                                <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">${error.message}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+
+        function showDownloadButton(conversionId) {
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            downloadBtn.href = `/download/${conversionId}`;
+            downloadBtn.download = `audio_sculpture_${conversionId}.stl`;
+            downloadSection.style.display = 'block';
+        }
+
+        // Download functionality
+        document.getElementById('downloadBtn').addEventListener('click', function(e) {
+            if (!currentSTLFile) {
+                e.preventDefault();
+                showStatus('No STL file available for download.', 'error');
+                return;
+            }
+            
+            showStatus('Download started!', 'success');
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('Ready to generate audio sculptures! Upload an audio file to begin.', 'success');
+        });
+    </script>
+</body>
+</html>
